@@ -30,27 +30,31 @@ func main() {
 	s := grpc.NewServer()
 
 	pb.RegisterBlogsServer(s, &blogServer{})
+	config.InitializeLogger()
 	config.InitializeEnv()
 	config.InitializeDB()
 
-	log.Printf("server listening at %v", lis.Addr())
+	config.Logger.Debug("server listening at ", lis.Addr())
 	if err := s.Serve(lis); err != nil {
-		log.Fatalf("failed to serve: %v", err)
+		config.Logger.Error("failed to serve: ", err)
 	}
 }
 
 func (s *blogServer) Create(ctx context.Context, input *pb.CreatePostRequest) (*pb.PostResponse, error) {
 
-	var tags []byte
+	var (
+		inputTags  []byte
+		outputTags []string
+	)
 
-	tags, _ = json.Marshal(input.Post.Tags)
+	inputTags, _ = json.Marshal(input.Post.Tags)
 
 	inputReq := models.Blog{
 		Title:           input.Post.Title,
 		Content:         input.Post.Content,
 		Author:          input.Post.Author,
 		PublicationDate: input.Post.PublicationDate,
-		Tags:            string(tags),
+		Tags:            string(inputTags),
 	}
 
 	fmt.Println("input", inputReq.Title)
@@ -61,12 +65,10 @@ func (s *blogServer) Create(ctx context.Context, input *pb.CreatePostRequest) (*
 		return &pb.PostResponse{
 			Post:   nil,
 			Status: "Error while creating the post",
-		}, nil
+		}, err
 	}
 
-	var tag []string
-
-	json.Unmarshal([]byte(post.Tags), &tag)
+	json.Unmarshal([]byte(post.Tags), &outputTags)
 
 	return &pb.PostResponse{
 		Post: &pb.PostDetails{
@@ -75,9 +77,9 @@ func (s *blogServer) Create(ctx context.Context, input *pb.CreatePostRequest) (*
 			Content:         post.Content,
 			Author:          post.Author,
 			PublicationDate: post.PublicationDate,
-			Tags:            tag,
+			Tags:            outputTags,
 		},
-		Status: "Created Successfully",
+		Status: "Post Created Successfully",
 	}, nil
 }
 
@@ -88,8 +90,8 @@ func (s *blogServer) Get(ctx context.Context, input *pb.PostId) (*pb.PostRespons
 	if err != nil {
 		return &pb.PostResponse{
 			Post:   nil,
-			Status: "Error while updating the post",
-		}, nil
+			Status: "Error",
+		}, err
 	}
 
 	var tag []string
@@ -105,7 +107,7 @@ func (s *blogServer) Get(ctx context.Context, input *pb.PostId) (*pb.PostRespons
 			PublicationDate: blog.PublicationDate,
 			Tags:            tag,
 		},
-		Status: "Fetched Successfully",
+		Status: "Post Fetched Successfully",
 	}, nil
 }
 
@@ -129,7 +131,7 @@ func (s *blogServer) Update(ctx context.Context, input *pb.UpdatePost) (*pb.Post
 		return &pb.PostResponse{
 			Post:   nil,
 			Status: "Error while updating the post",
-		}, nil
+		}, err
 	}
 
 	return &pb.PostResponse{
@@ -141,7 +143,7 @@ func (s *blogServer) Update(ctx context.Context, input *pb.UpdatePost) (*pb.Post
 			PublicationDate: input.UpdateInput.PublicationDate,
 			Tags:            input.UpdateInput.Tags,
 		},
-		Status: "Created Successfully",
+		Status: "Post updated Successfully",
 	}, nil
 
 }
@@ -152,8 +154,8 @@ func (s *blogServer) Delete(ctx context.Context, input *pb.PostId) (*pb.DeletePo
 
 	if err != nil {
 		return &pb.DeletePost{
-			Status: err.Error(),
-		}, nil
+			Status: "Error while updating the post",
+		}, err
 	}
 
 	return &pb.DeletePost{
