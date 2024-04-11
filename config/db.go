@@ -14,7 +14,8 @@ var MariaDB *gorm.DB
 // InitializeDB : Initializes the Database connections
 func InitializeDB() {
 
-	fmt.Println("env", Env.Dbconn)
+	Logger.Debug("Initializing db...")
+
 	dsn := fmt.Sprintf("%s?parseTime=True", Env.Dbconn)
 
 	db, err := gorm.Open(mysql.Open(dsn), &gorm.Config{})
@@ -23,9 +24,7 @@ func InitializeDB() {
 		panic(err)
 	}
 
-	// sqlDB, _ := db.DB()
-	// sqlDB.SetMaxIdleConns(25)
-	// sqlDB.SetConnMaxLifetime(time.Minute * 15)
-
 	MariaDB = db
+
+	Logger.Debug("Db successfully initialized!!!")
 }
