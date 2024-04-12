@@ -6,15 +6,32 @@ import (
 	"github.com/hariprasanth3031/go-blog-service/models"
 )
 
-func CreatePost(ctx context.Context, input models.Blog) (*models.Blog, error) {
-	return db.CreatePost(ctx, &input)
+type BlogService interface {
+	CreatePost(ctx context.Context, input models.Blog) (*models.Blog, error)
+	GetPost(ctx context.Context, id uint64) (*models.Blog, error)
+	UpdatePost(ctx context.Context, input models.Blog) error
+	DeletePost(ctx context.Context, id uint64) error
 }
 
-func GetPost(ctx context.Context, id uint64) (*models.Blog, error) {
-	return db.GetPost(ctx, id)
+type blogService struct {
+	blogDb db.BlogDb
 }
 
-func UpdatePost(ctx context.Context, input models.Blog) error {
+func NewBlogService(blogDb db.BlogDb) BlogService {
+	return &blogService{
+		blogDb: blogDb,
+	}
+}
+
+func (s *blogService) CreatePost(ctx context.Context, input models.Blog) (*models.Blog, error) {
+	return s.blogDb.CreatePost(ctx, &input)
+}
+
+func (s *blogService) GetPost(ctx context.Context, id uint64) (*models.Blog, error) {
+	return s.blogDb.GetPost(ctx, id)
+}
+
+func (s *blogService) UpdatePost(ctx context.Context, input models.Blog) error {
 
 	updates := make(map[string]interface{}, 0)
 
@@ -34,9 +51,13 @@ func UpdatePost(ctx context.Context, input models.Blog) error {
 		updates["tags"] = input.Tags
 	}
 
-	return db.UpdatePost(ctx, updates, input.Id)
+	return s.blogDb.UpdatePost(ctx, updates, input.Id)
 }
 
-func DeletePost(ctx context.Context, id uint64) error {
-	return db.DeletePost(ctx, id)
+func (s *blogService) DeletePost(ctx context.Context, id uint64) error {
+
+	//var err error
+	err := s.blogDb.DeletePost(ctx, id)
+
+	return err
 }

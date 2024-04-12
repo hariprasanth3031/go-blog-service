@@ -7,9 +7,26 @@ import (
 	"gorm.io/gorm"
 )
 
-func CreatePost(ctx context.Context, input *models.Blog) (*models.Blog, error) {
+type BlogDb interface {
+	CreatePost(ctx context.Context, input *models.Blog) (*models.Blog, error)
+	GetPost(ctx context.Context, id uint64) (*models.Blog, error)
+	UpdatePost(ctx context.Context, updates map[string]interface{}, id uint64) error
+	DeletePost(ctx context.Context, id uint64) error
+}
 
-	res := config.MariaDB.WithContext(ctx).Debug().
+type blogDb struct {
+	db *gorm.DB
+}
+
+func NewBlogRepo() BlogDb {
+	return &blogDb{
+		db: config.MariaDB,
+	}
+}
+
+func (d *blogDb) CreatePost(ctx context.Context, input *models.Blog) (*models.Blog, error) {
+
+	res := d.db.WithContext(ctx).Debug().
 		Table("blog").
 		Create(&input)
 
@@ -21,11 +38,11 @@ func CreatePost(ctx context.Context, input *models.Blog) (*models.Blog, error) {
 
 }
 
-func GetPost(ctx context.Context, id uint64) (*models.Blog, error) {
+func (d *blogDb) GetPost(ctx context.Context, id uint64) (*models.Blog, error) {
 
 	var output models.Blog
 
-	res := config.MariaDB.WithContext(ctx).Debug().
+	res := d.db.WithContext(ctx).Debug().
 		Table("blog").
 		Where("id = ?", id).
 		Find(&output)
@@ -42,9 +59,9 @@ func GetPost(ctx context.Context, id uint64) (*models.Blog, error) {
 
 }
 
-func UpdatePost(ctx context.Context, updates map[string]interface{}, id uint64) error {
+func (d *blogDb) UpdatePost(ctx context.Context, updates map[string]interface{}, id uint64) error {
 
-	res := config.MariaDB.WithContext(ctx).Debug().
+	res := d.db.WithContext(ctx).Debug().
 		Table("blog").
 		Where("id = ?", id).
 		Updates(updates)
@@ -61,9 +78,9 @@ func UpdatePost(ctx context.Context, updates map[string]interface{}, id uint64) 
 
 }
 
-func DeletePost(ctx context.Context, id uint64) error {
+func (d *blogDb) DeletePost(ctx context.Context, id uint64) error {
 
-	res := config.MariaDB.WithContext(ctx).Debug().
+	res := d.db.WithContext(ctx).Debug().
 		Table("blog").
 		Delete(&models.Blog{Id: id})
 
