@@ -8,17 +8,17 @@ protoc \
 --go-grpc_opt=paths=source_relative \
 protos/blogs.proto
 
-Db Confguration:
-Install mysql in local
-Create a database "blogs_management"
-Copy the schema from schema folder and create the tables
-Create a config.env file and fill the values for the keys in config/env.go file
+Db Confguration: \
+1) Install mysql in local \
+2) Create a database "blogs_management" \
+3) Copy the schema from schema folder and create the tables \
+4) Create a config.env file and fill the values for the keys in config/env.go file \
 
-How to  check the response:
-Clone this repo
-Open Postman and create a new gRPC request
-Under service definiton tab, import the blogs.proto file from the repo
-Make the url as localhost:8080 
-Under message tab, click example message for a sample input
-Click Invoke to see the response
+How to  check the response: \
+1) Clone this repo \
+2) Open Postman and create a new gRPC request \
+3) Under service definiton tab, import the blogs.proto file from the repo \
+4) Make the url as localhost:8080 \
+5) Under message tab, click example message for a sample input \
+6 )Click Invoke to see the response \
 
