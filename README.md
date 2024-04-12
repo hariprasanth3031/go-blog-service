@@ -15,8 +15,8 @@ Db Confguration:
 4) Create a config.env file and fill the values for the keys in config/env.go file 
 
 How to check the response: 
-1) Clone this repo 
-2) Open Postman and create a new gRPC request 
+1) Clone this repo and checkout to master branch
+2) Using postman, create a new gRPC request 
 3) Under service definiton tab, import the blogs.proto file from the repo 
 4) Make the url as localhost:8080 
 5) Under message tab, click example message for a sample input 
