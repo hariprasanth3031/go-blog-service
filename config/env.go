@@ -2,6 +2,7 @@ package config
 
 import (
 	"github.com/joho/godotenv"
+	"os"
 )
 
 // Env : Variable to hold the env details
@@ -19,7 +20,7 @@ func InitializeEnv() {
 	_ = godotenv.Load("./config.env")
 
 	Env = &envData{
-		Dbconn: "hariprasanth:12345@tcp(127.0.0.1:3306)/blogs_management",
+		Dbconn: os.Getenv("Dbconn"),
 	}
 
 	Logger.Debug("Env's successfully initialized!!!")
