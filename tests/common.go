@@ -24,10 +24,3 @@ func UnsetMockCalls(functions []*mock.Call) {
 		call.Unset()
 	}
 }
-
-func InitializeContext() context.Context {
-	var ctx = context.Background()
-	ctx = context.WithValue(context.Background(), "email", "jay@tekion.com")
-	ctx = context.WithValue(ctx, "accessemail", "jay@tekion.com")
-	return ctx
-}
