@@ -4,7 +4,7 @@ import (
 	"fmt"
 	mysql "go.elastic.co/apm/module/apmgormv2/v2/driver/mysql"
 	"gorm.io/gorm"
-	"gorm.io/gorm/schema"
+	//"gorm.io/gorm/schema"
 	// "time"
 )
 
@@ -14,17 +14,17 @@ var MariaDB *gorm.DB
 // InitializeDB : Initializes the Database connections
 func InitializeDB() {
 
-	db, err := gorm.Open(mysql.Open(Env.Dbconn+fmt.Sprintf("?%s", "&parseTime=True")), &gorm.Config{
-		SkipDefaultTransaction: false,
-		NamingStrategy:         schema.NamingStrategy{SingularTable: true, TablePrefix: "blogs."},
-	})
+	Logger.Debug("Initializing db...")
+
+	dsn := fmt.Sprintf("%s?parseTime=True", Env.Dbconn)
+
+	db, err := gorm.Open(mysql.Open(dsn), &gorm.Config{})
 	if err != nil {
+		fmt.Println(err)
 		panic(err)
 	}
 
-	// sqlDB, _ := db.DB()
-	// sqlDB.SetMaxIdleConns(25)
-	// sqlDB.SetConnMaxLifetime(time.Minute * 15)
-
 	MariaDB = db
+
+	Logger.Debug("Db successfully initialized!!!")
 }
