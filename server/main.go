@@ -8,6 +8,7 @@ import (
 
 	"github.com/hariprasanth3031/go-blog-service/config"
 	"github.com/hariprasanth3031/go-blog-service/constants"
+	"github.com/hariprasanth3031/go-blog-service/db"
 	"github.com/hariprasanth3031/go-blog-service/models"
 	pb "github.com/hariprasanth3031/go-blog-service/protos"
 	"github.com/hariprasanth3031/go-blog-service/service"
@@ -25,6 +26,8 @@ type blogServer struct {
 	pb.UnimplementedBlogsServer
 }
 
+var BlogService service.BlogService
+
 func main() {
 
 	config.InitializeLogger()
@@ -38,6 +41,8 @@ func main() {
 	s := grpc.NewServer()
 
 	pb.RegisterBlogsServer(s, &blogServer{})
+	BlogRepo := db.NewBlogRepo()
+	BlogService = service.NewBlogService(BlogRepo)
 
 	config.Logger.Debug("server listening at -", lis.Addr())
 	if err := s.Serve(lis); err != nil {
@@ -68,7 +73,7 @@ func (s *blogServer) Create(ctx context.Context, input *pb.CreatePostRequest) (*
 		Tags:            string(inputTags),
 	}
 
-	post, err = service.CreatePost(ctx, inputReq)
+	post, err = BlogService.CreatePost(ctx, inputReq)
 
 	if err != nil {
 		return nil, status.Errorf(codes.Internal, constants.ErrCreatePost, ": %v", err)
@@ -100,7 +105,7 @@ func (s *blogServer) Get(ctx context.Context, input *pb.PostId) (*pb.PostRespons
 		post *models.Blog
 	)
 
-	post, err = service.GetPost(ctx, uint64(input.PostId))
+	post, err = BlogService.GetPost(ctx, uint64(input.PostId))
 
 	if err != nil {
 		if errors.Is(err, gorm.ErrRecordNotFound) {
@@ -149,7 +154,7 @@ func (s *blogServer) Update(ctx context.Context, input *pb.UpdatePost) (*pb.Post
 		Tags:            string(tags),
 	}
 
-	err = service.UpdatePost(ctx, inputReq)
+	err = BlogService.UpdatePost(ctx, inputReq)
 	if err != nil {
 		if errors.Is(err, gorm.ErrRecordNotFound) {
 			return nil, status.Errorf(codes.NotFound, constants.ErrRecordNotFound)
@@ -175,7 +180,7 @@ func (s *blogServer) Delete(ctx context.Context, input *pb.PostId) (*pb.DeletePo
 
 	var err error
 
-	err = service.DeletePost(ctx, uint64(input.PostId))
+	err = BlogService.DeletePost(ctx, uint64(input.PostId))
 
 	if err != nil {
 		if errors.Is(err, gorm.ErrRecordNotFound) {
