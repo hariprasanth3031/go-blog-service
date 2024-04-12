@@ -2,16 +2,12 @@ package db
 
 import (
 	"context"
-	"errors"
-	"fmt"
-
 	"github.com/hariprasanth3031/go-blog-service/config"
 	"github.com/hariprasanth3031/go-blog-service/models"
+	"gorm.io/gorm"
 )
 
 func CreatePost(ctx context.Context, input *models.Blog) (*models.Blog, error) {
-
-	fmt.Println("inp", input.Title, input.Tags)
 
 	res := config.MariaDB.WithContext(ctx).Debug().
 		Table("blog").
@@ -38,6 +34,10 @@ func GetPost(ctx context.Context, id uint64) (*models.Blog, error) {
 		return &output, res.Error
 	}
 
+	if res.RowsAffected == 0 {
+		return &output, gorm.ErrRecordNotFound
+	}
+
 	return &output, nil
 
 }
@@ -51,6 +51,10 @@ func UpdatePost(ctx context.Context, updates map[string]interface{}, id uint64) 
 
 	if res.Error != nil {
 		return res.Error
+	}
+
+	if res.RowsAffected == 0 {
+		return gorm.ErrRecordNotFound
 	}
 
 	return nil
@@ -68,7 +72,7 @@ func DeletePost(ctx context.Context, id uint64) error {
 	}
 
 	if res.RowsAffected == 0 {
-		return errors.New("record not found")
+		return gorm.ErrRecordNotFound
 	}
 
 	return nil

@@ -3,15 +3,18 @@ package main
 import (
 	"context"
 	"encoding/json"
-	"fmt"
-	"log"
+	"errors"
 	"net"
 
 	"github.com/hariprasanth3031/go-blog-service/config"
+	"github.com/hariprasanth3031/go-blog-service/constants"
 	"github.com/hariprasanth3031/go-blog-service/models"
 	pb "github.com/hariprasanth3031/go-blog-service/protos"
 	"github.com/hariprasanth3031/go-blog-service/service"
 	"google.golang.org/grpc"
+	"google.golang.org/grpc/codes"
+	"google.golang.org/grpc/status"
+	"gorm.io/gorm"
 )
 
 const (
@@ -23,20 +26,22 @@ type blogServer struct {
 }
 
 func main() {
-	lis, err := net.Listen("tcp", port)
-	if err != nil {
-		log.Fatalf("failed to listen: %v", err)
-	}
-	s := grpc.NewServer()
 
-	pb.RegisterBlogsServer(s, &blogServer{})
 	config.InitializeLogger()
 	config.InitializeEnv()
 	config.InitializeDB()
 
-	config.Logger.Debug("server listening at ", lis.Addr())
+	lis, err := net.Listen("tcp", port)
+	if err != nil {
+		config.Logger.Error("failed to listen | Error -", err)
+	}
+	s := grpc.NewServer()
+
+	pb.RegisterBlogsServer(s, &blogServer{})
+
+	config.Logger.Debug("server listening at -", lis.Addr())
 	if err := s.Serve(lis); err != nil {
-		config.Logger.Error("failed to serve: ", err)
+		config.Logger.Error("failed to serve | Error -", err)
 	}
 }
 
@@ -45,9 +50,15 @@ func (s *blogServer) Create(ctx context.Context, input *pb.CreatePostRequest) (*
 	var (
 		inputTags  []byte
 		outputTags []string
+		err        error
+		post       *models.Blog
 	)
 
-	inputTags, _ = json.Marshal(input.Post.Tags)
+	inputTags, err = json.Marshal(input.Post.Tags)
+
+	if err != nil {
+		return nil, status.Errorf(codes.Internal, constants.ErrCreatePost, ": %v", err)
+	}
 
 	inputReq := models.Blog{
 		Title:           input.Post.Title,
@@ -57,18 +68,16 @@ func (s *blogServer) Create(ctx context.Context, input *pb.CreatePostRequest) (*
 		Tags:            string(inputTags),
 	}
 
-	fmt.Println("input", inputReq.Title)
-
-	post, err := service.CreatePost(ctx, inputReq)
+	post, err = service.CreatePost(ctx, inputReq)
 
 	if err != nil {
-		return &pb.PostResponse{
-			Post:   nil,
-			Status: "Error while creating the post",
-		}, err
+		return nil, status.Errorf(codes.Internal, constants.ErrCreatePost, ": %v", err)
 	}
 
-	json.Unmarshal([]byte(post.Tags), &outputTags)
+	err = json.Unmarshal([]byte(post.Tags), &outputTags)
+	if err != nil {
+		return nil, status.Errorf(codes.Internal, constants.ErrCreatePost, ": %v", err)
+	}
 
 	return &pb.PostResponse{
 		Post: &pb.PostDetails{
@@ -79,45 +88,60 @@ func (s *blogServer) Create(ctx context.Context, input *pb.CreatePostRequest) (*
 			PublicationDate: post.PublicationDate,
 			Tags:            outputTags,
 		},
-		Status: "Post Created Successfully",
+		Status: constants.RecordCreated,
 	}, nil
 }
 
 func (s *blogServer) Get(ctx context.Context, input *pb.PostId) (*pb.PostResponse, error) {
 
-	blog, err := service.GetPost(ctx, uint64(input.PostId))
+	var (
+		tag  []string
+		err  error
+		post *models.Blog
+	)
+
+	post, err = service.GetPost(ctx, uint64(input.PostId))
 
 	if err != nil {
-		return &pb.PostResponse{
-			Post:   nil,
-			Status: "Error",
-		}, err
+		if errors.Is(err, gorm.ErrRecordNotFound) {
+			return nil, status.Errorf(codes.NotFound, constants.ErrRecordNotFound)
+		}
+		return nil, status.Errorf(codes.Internal, constants.ErrFetchPost, ": %v", err)
 	}
 
-	var tag []string
+	err = json.Unmarshal([]byte(post.Tags), &tag)
 
-	json.Unmarshal([]byte(blog.Tags), &tag)
+	if err != nil {
+		return nil, status.Errorf(codes.Internal, constants.ErrFetchPost, ": %v", err)
+	}
 
 	return &pb.PostResponse{
 		Post: &pb.PostDetails{
-			Id:              blog.Id,
-			Title:           blog.Title,
-			Content:         blog.Content,
-			Author:          blog.Author,
-			PublicationDate: blog.PublicationDate,
+			Id:              post.Id,
+			Title:           post.Title,
+			Content:         post.Content,
+			Author:          post.Author,
+			PublicationDate: post.PublicationDate,
 			Tags:            tag,
 		},
-		Status: "Post Fetched Successfully",
+		Status: constants.RecordFetched,
 	}, nil
 }
 
 func (s *blogServer) Update(ctx context.Context, input *pb.UpdatePost) (*pb.PostResponse, error) {
 
-	var tags []byte
+	var (
+		tags []byte
+		err  error
+	)
 
-	tags, _ = json.Marshal(input.UpdateInput.Tags)
+	tags, err = json.Marshal(input.UpdateInput.Tags)
+	if err != nil {
+		return nil, status.Errorf(codes.Internal, constants.ErrUpdatePost, ": %v", err)
+	}
 
 	inputReq := models.Blog{
+		Id:              input.UpdateInput.Id,
 		Title:           input.UpdateInput.Title,
 		Content:         input.UpdateInput.Content,
 		Author:          input.UpdateInput.Author,
@@ -125,13 +149,12 @@ func (s *blogServer) Update(ctx context.Context, input *pb.UpdatePost) (*pb.Post
 		Tags:            string(tags),
 	}
 
-	err := service.UpdatePost(ctx, inputReq)
-
+	err = service.UpdatePost(ctx, inputReq)
 	if err != nil {
-		return &pb.PostResponse{
-			Post:   nil,
-			Status: "Error while updating the post",
-		}, err
+		if errors.Is(err, gorm.ErrRecordNotFound) {
+			return nil, status.Errorf(codes.NotFound, constants.ErrRecordNotFound)
+		}
+		return nil, status.Errorf(codes.Internal, constants.ErrUpdatePost, ": %v", err)
 	}
 
 	return &pb.PostResponse{
@@ -143,22 +166,25 @@ func (s *blogServer) Update(ctx context.Context, input *pb.UpdatePost) (*pb.Post
 			PublicationDate: input.UpdateInput.PublicationDate,
 			Tags:            input.UpdateInput.Tags,
 		},
-		Status: "Post updated Successfully",
+		Status: constants.RecordUpdated,
 	}, nil
 
 }
 
 func (s *blogServer) Delete(ctx context.Context, input *pb.PostId) (*pb.DeletePost, error) {
 
-	err := service.DeletePost(ctx, uint64(input.PostId))
+	var err error
+
+	err = service.DeletePost(ctx, uint64(input.PostId))
 
 	if err != nil {
-		return &pb.DeletePost{
-			Status: "Error while updating the post",
-		}, err
+		if errors.Is(err, gorm.ErrRecordNotFound) {
+			return nil, status.Errorf(codes.NotFound, constants.ErrRecordNotFound)
+		}
+		return nil, status.Errorf(codes.Internal, constants.ErrDeletePost, ": %v", err)
 	}
 
 	return &pb.DeletePost{
-		Status: "Successfully deleted",
+		Status: constants.RecordDeleted,
 	}, nil
 }

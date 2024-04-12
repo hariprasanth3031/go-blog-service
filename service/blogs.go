@@ -26,10 +26,6 @@ func UpdatePost(ctx context.Context, input models.Blog) error {
 		updates["title"] = input.Title
 	}
 
-	if input.PublicationDate != "" {
-		updates["publication_date"] = input.PublicationDate
-	}
-
 	if input.Content != "" {
 		updates["content"] = input.Content
 	}
