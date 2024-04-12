@@ -1,8 +1,6 @@
 package tests
 
 import (
-	"context"
-
 	"github.com/hariprasanth3031/go-blog-service/tests/mock_db"
 	"github.com/stretchr/testify/mock"
 )
