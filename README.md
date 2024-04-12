@@ -8,9 +8,9 @@ protoc \
 --go-grpc_opt=paths=source_relative \
 protos/blogs.proto
 
-Db Confguration: \
-1) Install mysql in local \
-2) Create a database "blogs_management" \
+Db Confguration:
+1) Install mysql in local
+2) Create a database "blogs_management"
 3) Copy the schema from schema folder and create the tables \
 4) Create a config.env file and fill the values for the keys in config/env.go file \
 
