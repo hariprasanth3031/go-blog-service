@@ -2,6 +2,8 @@ package service
 
 import (
 	"context"
+	"errors"
+
 	"github.com/hariprasanth3031/go-blog-service/db"
 	"github.com/hariprasanth3031/go-blog-service/models"
 )
@@ -34,6 +36,10 @@ func (s *blogService) GetPost(ctx context.Context, id uint64) (*models.Blog, err
 func (s *blogService) UpdatePost(ctx context.Context, input models.Blog) error {
 
 	updates := make(map[string]interface{}, 0)
+
+	if input.Id < 0 {
+		return errors.New("id invalid")
+	}
 
 	if input.Author != "" {
 		updates["author"] = input.Author
