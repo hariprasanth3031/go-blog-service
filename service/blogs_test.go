@@ -35,9 +35,35 @@ func TestCreatePost(t *testing.T) {
 			mockCalls := tests.InitializeMockFunctions(test.MockFunctions)
 
 			param1, param2 := TestBlogService.CreatePost(ctx, test.Input)
-			//expectedResult := test.ExpectedOutput
 			assert.Equal(t, param1, test.ExpectedOutputParam1, "actual result and expected result are not equal")
 			assert.Equal(t, param2, test.ExpectedOutputParam2, "actual result and expected result are not equal")
+			tests.UnsetMockCalls(mockCalls)
+		})
+	}
+}
+
+func TestGetPost(t *testing.T) {
+	for _, test := range test_cases.GetPostTestcases {
+		t.Run(test.Case, func(t *testing.T) {
+
+			mockCalls := tests.InitializeMockFunctions(test.MockFunctions)
+
+			param1, param2 := TestBlogService.GetPost(ctx, test.Input)
+			assert.Equal(t, param1, test.ExpectedOutputParam1, "actual result and expected result are not equal")
+			assert.Equal(t, param2, test.ExpectedOutputParam2, "actual result and expected result are not equal")
+			tests.UnsetMockCalls(mockCalls)
+		})
+	}
+}
+
+func TestUpdatePost(t *testing.T) {
+	for _, test := range test_cases.UpdatePostTestcases {
+		t.Run(test.Case, func(t *testing.T) {
+
+			mockCalls := tests.InitializeMockFunctions(test.MockFunctions)
+
+			param1 := TestBlogService.UpdatePost(ctx, test.Input)
+			assert.Equal(t, param1, test.ExpectedOutput, "actual result and expected result are not equal")
 			tests.UnsetMockCalls(mockCalls)
 		})
 	}
